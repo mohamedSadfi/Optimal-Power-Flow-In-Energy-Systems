@@ -6,16 +6,22 @@ This project is about solving the optimal power flow optimization problem using 
 
 ## Repository Structure
 
-- **main.py**: This is where the optimization problem is declared and solved.
+- **optimization.py**: This is where the optimization problem is declared and solved.
 - **system.py**: Contains functions to define larger systems than the one in `params.py`.
 - **params.py**: Defines the system with a dictionary containing all grid parameters.
+- **main_plots.py**: Main file for plotting the results
+- **plots.py**: Defines functions that are used for plotting the results of optimization
+- **helper.py**: Defines helper functions to extract the variables values and save them to array
 
 ```plaintext
 .
 ├── src
-│   ├── main.py
+│   ├── optimization.py
 │   ├── system.py
 │   ├── params.py
+│   ├── plots.py
+│   ├── main_plots.py.py
+│   ├── helper.py
 ├── README.md
 
 ```
@@ -24,9 +30,11 @@ This project is about solving the optimal power flow optimization problem using 
 
 ### Step 1: Clone the Repository
 
+Go to the directory where you want to save the files
+
 ```sh
 
-git clone https://github.com/your-username/OPF_OMFE.git
+git clone "git_repository_url"
 cd OPF_OMFE
 
 ```
