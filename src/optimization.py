@@ -4,7 +4,7 @@ from pyomo.opt import SolverFactory
 import numpy as np
 import re
 from params import params
-from system import update_Ybus, create_system
+from system import update_Ybus, create_system, extract_variable_from_file
 
 # Check if ipopt is available
 if not SolverFactory("ipopt").available():
@@ -24,14 +24,14 @@ model.Gens = pyo.RangeSet(1, params["Unit_Num"])
 model.Horizon = pyo.RangeSet(1, params["Horizon"])
 
 # Define variables
-model.Pgen = pyo.Var(model.Gens, model.Horizon, within=pyo.NonNegativeReals, initialize=0.0)
-model.Qgen = pyo.Var(model.Gens, model.Horizon, within=pyo.Reals, initialize=0.0)
-model.WP_p = pyo.Var(model.Horizon, within=pyo.NonNegativeReals)
-model.WP_q = pyo.Var(model.Horizon, within=pyo.Reals, initialize=0.0)
-model.V = pyo.Var(model.Nodes, model.Horizon, within=pyo.Reals, initialize=1.0)
-model.theta = pyo.Var(model.Nodes, model.Horizon, within=pyo.Reals, initialize=0.0)
-model.Pflow = pyo.Var(model.Nodes, model.Nodes, model.Horizon, within=pyo.Reals, initialize=0.0)
-model.Qflow = pyo.Var(model.Nodes, model.Nodes, model.Horizon, within=pyo.Reals, initialize=0.0)
+model.Pgen = pyo.Var(model.Gens, model.Horizon, within=pyo.NonNegativeReals, initialize=1.0)  # Index for extracting values from results.csv: 21,22 (Pgen1,Pgen2)
+model.Qgen = pyo.Var(model.Gens, model.Horizon, within=pyo.Reals, initialize=2.0) # Index for extracting values from results.csv: 23,24 (Qgen1, Qgen2)
+model.WP_p = pyo.Var(model.Horizon, within=pyo.NonNegativeReals, initialize=3.0) # Index for extracting values from results.csv: 1 
+model.WP_q = pyo.Var(model.Horizon, within=pyo.Reals, initialize=4.0) # Index for extracting values from results.csv: 2 
+model.V = pyo.Var(model.Nodes, model.Horizon, within=pyo.Reals, initialize=5.0) # Index for extracting values from results.csv: 15,16,17 (U1,U2,U3)
+model.theta = pyo.Var(model.Nodes, model.Horizon, within=pyo.Reals, initialize=6.0) # Index for extracting values from results.csv: 18,19,20 (Theta1,Theta2,Theta3)
+model.Pflow = pyo.Var(model.Nodes, model.Nodes, model.Horizon, within=pyo.Reals, initialize=7.0) # Index for extracting values from results.csv: 3,4,5,6,7,8 (1-2,1-3,2-1,2-3,3-1,3-2)
+model.Qflow = pyo.Var(model.Nodes, model.Nodes, model.Horizon, within=pyo.Reals, initialize=8.0) # Index for extracting values from results.csv: 9,10,11,12,13,14 (1-2,1-3,2-1,2-3,3-1,3-2)
 
 # Define the objective function
 def objective_function(m):
@@ -197,7 +197,7 @@ def extract_lagrange_values(log_file):
 solver = pyo.SolverFactory("ipopt")
 solver.options["tol"] = 1e-6
 solver.options["max_iter"] = 10000
-solver.options["print_level"] = 8
+solver.options["print_level"] = 8 # make sure the print level is 8 so that extracting the variables values works fine 
 
 results = solver.solve(model, tee=True, keepfiles=True, logfile="results.csv")
 
@@ -218,41 +218,33 @@ if (results.solver.status == pyo.SolverStatus.ok) and (results.solver.terminatio
 
     # Define the path to your input CSV file
     input_csv_file_path = "results.csv"
-    # Define the path to your output CSV file
-    output_csv_file_path = "iterations.csv"
+    
 
     # Read the CSV file into a list of strings
     with open(input_csv_file_path, "r") as file:
         lines = file.readlines()
 
-    pgen_values = []
+    
+    
     objective_values = []
+    
+    
+    extract_variable_from_file(input_csv_file_path, "pgen1values.csv", 21)
+    extract_variable_from_file(input_csv_file_path, "pgen2_values.csv", 22)
+    
+    # To extract other variables, simply look up the corresponding index next to the variable declarations and use the extract_variable_from_file function
 
     # Initialize a flag to track when the next line should be appended
     append_next_line = False
 
     for i, line in enumerate(lines):
         if solver.options["print_level"] == 8:
-            if line.startswith("curr_x[   21]="):
-                pgen_values.append(line)
-            if line.startswith("curr_x[   22]="):
-                pgen_values.append(line)
             if append_next_line:
                 objective_values.append(line)
                 append_next_line = False
             if line.startswith("iter"):
                 append_next_line = True
-        if solver.options["print_level"] == 5:
-            if append_next_line:
-                objective_values.append(line)
-                if lines[i + 1].startswith("iter") or lines[i + 1].strip() == "":
-                    append_next_line = False
-            if line.startswith("iter"):
-                append_next_line = True
 
-    with open("pgen_values.csv", "w") as file:
-        for line in pgen_values:
-            file.write(line)
 
     with open("iterations.csv", "w") as file:
         for line in objective_values:
